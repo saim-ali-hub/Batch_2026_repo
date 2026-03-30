@@ -39,34 +39,28 @@ changing_other_configurations() {
     echo "RUNNING TASK 6"
     yum install -y httpd &>/dev/null
     systemctl enable httpd --now &>/dev/null || true
-    sed -i 's/^Listen .*/Listen 82/' /etc/httpd/conf/httpd.conf
+    sed -i 's/^Listen .*/Listen 83/' /etc/httpd/conf/httpd.conf
 
-    semanage port -d -t http_port_t -p tcp 82 &>/dev/null || true
-    firewall-cmd --remove-port=82/tcp --permanent &>/dev/null || true
+    semanage port -d -t http_port_t -p tcp 83 &>/dev/null || true
+    firewall-cmd --remove-port=83/tcp --permanent &>/dev/null || true
     firewall-cmd --reload &>/dev/null || true
 
     echo "RUNNING TASK 7"
-    mkdir -p /web1
-    echo "I am enjoying RHCSA preparation" > /web1/index.html
-    cp /etc/httpd/conf/httpd.conf /etc/httpd/conf/httpd.conf.bak
-    sed -i 's|^DocumentRoot ".*"|DocumentRoot "/web1"|' /etc/httpd/conf/httpd.conf
-    sed -i 's|<Directory "/var/www">|<Directory "/web1">|' /etc/httpd/conf/httpd.conf
-    systemctl restart httpd &>/dev/null
-    
+    echo "Practicing RHCSA9" > /var/www/html/index.html
+   
     echo "RUNNING TASK 8 ......................."
-    rm -rf /project >/dev/null 2>&1
+    rm -rf /tmp/web >/dev/null 2>&1
     crontab -u bob -r &>/dev/null || true
-    sed -i '/^natasha$/d' /etc/cron.deny &>/dev/null
-
+    
     rm -rf /var/log/journal >/dev/null 2>&1   # disable persistent journal
     rm -rf /tmp/archive.tar >/dev/null 2>&1
+    yum remove bzip2 -y &>/dev/null
     rm -rf /var/tmp/fstab >/dev/null 2>&1
     rm -rf /tmp/data2 >/dev/null 2>&1
     rm -rf /tmp/file-logs >/dev/null 2>&1
     rm -rf /backup/logfiles >/dev/null 2>&1
     rm -rf /var/tmp/linda >/dev/null 2>&1
     rm -rf /tmp/setgid_files >/dev/null 2>&1
-    rm -rf /usr/local/bin/myprogram >/dev/null 2>&1
     rm -rf /tmp/new_dir >/dev/null 2>&1
     rm -rf /tmp/myscript >/dev/null 2>&1
     rm -rf /tmp/new_file >/dev/null 2>&1
@@ -103,4 +97,7 @@ lvdisplay /dev/vg3/lv3 &>/dev/null && lvremove -y /dev/vg3/lv3 >/dev/null 2>&1
 vgdisplay vg3 &>/dev/null && vgremove -y vg3 >/dev/null 2>&1
 pvdisplay /dev/sdc2 &>/dev/null && pvremove -y /dev/sdc2 >/dev/null 2>&1
 
+}
+Configure_container() {
+podman -rmi webimage 
 }
