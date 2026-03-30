@@ -7,19 +7,19 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 # Move script if present locally
-if [ -f ".clone-client-mess-up1" ]; then
-    mv -f .clone-client-mess-up1 /usr/share/.clone-client-mess-up1 2>/dev/null
+if [ -f ".client-mess-up-2026" ]; then
+    mv -f .client-mess-up-2026 /usr/share/.client-mess-up-2026 2>/dev/null
 fi
 
 # Verify script exists
-if [ ! -f /usr/share/.clone-client-mess-up1 ]; then
-    echo "Error: /usr/share/.clone-client-mess-up1 not found"
+if [ ! -f /usr/share/.client-mess-up-2026 ]; then
+    echo "Error: /usr/share/.client-mess-up-2026 not found"
     exit 1
 fi
 
 # Source the script SAFELY
 set +e
-source /usr/share/.clone-client-mess-up1 2>/dev/null
+source /usr/share/.client-mess-up-2026 2>/dev/null
 set +e
 
 # Menu loop
@@ -27,10 +27,11 @@ echo "Select an option:"
 echo "1) changing_rootpw_repos_chrony"
 echo "2) changing_other_configurations"
 echo "3) Configure_LVM"
+echo "4) Configure_container"
 echo "q) Quit"
 
 while true; do
-    read -p "Enter choice (1, 2, q): " code
+    read -p "Enter choice (1, 2, 3, 4 q): " code
     echo ""
 
     case "$code" in
@@ -44,6 +45,9 @@ while true; do
             ;;
         3) 
             Configure_LVM 
+            ;;
+         4) 
+            Configure_container
             ;;
         q|Q)
             echo "Exiting... Goodbye!"
