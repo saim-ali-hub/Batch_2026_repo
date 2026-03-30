@@ -23,6 +23,12 @@ changing_rootpw_repos_chrony() {
 changing_other_configurations() {
     echo "RUNNING TASK 4"
     yum remove -y nfs-utils autofs &>/dev/null
+    rm -rf /etc/auto.master /etc/auto.misc 2>/dev/null
+    mkdir -p /rhome 2>/dev/null
+
+    for u in 1 2 3; do
+    useradd -u 400${u} -M -b /rhome user${u} 2>/dev/null
+    done
 
     echo "RUNNING TASK 5"
     for u in user1 max bob chris natasha; do
