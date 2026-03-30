@@ -99,5 +99,14 @@ pvdisplay /dev/sdc2 &>/dev/null && pvremove -y /dev/sdc2 >/dev/null 2>&1
 
 }
 Configure_container() {
-podman -rmi webimage 
+sudo -u linda bash -c '
+systemctl --user stop container-myweb.service 2>/dev/null
+systemctl --user disable container-myweb.service 2>/dev/null
+rm -f ~/.config/systemd/user/container-myweb.service
+systemctl --user daemon-reload
+podman rm -f myweb 2>/dev/null
+podman rmi webimage 2>/dev/null
+podman logout registry.redhat.io
+rm -f /opt/process/ /opt/action
+'
 }
