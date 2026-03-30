@@ -1,47 +1,40 @@
 #!/bin/bash
 eval_banner() {
-echo -e "\n\e[36mLINOOP TEK INNOVATIONS RHCSA EVALUATION 2025 TOOL STARTING\nKEEP CALM AND SIT TIGHT\e[0m"
+echo -e "\n\e[36mLINOOP TEK INNOVATIONS RHCSA EVALUATION 2026 TOOL STARTING\nKEEP CALM AND SIT TIGHT\e[0m"
 echo -e "\n\e[37m***********************RUNNING NOW******************************\n\e[0m"
 }
 : ' This Script evaluate students tasks
-    - check root pw			        --DONE
+    - check root pw					--DONE
     - check static IP   	        --DONE
-    - check webimage25		        --DONE
-    - check_webimage                --DONE
-    - check web container1	     	--DONE
-    - check_container25				--DONE
-    - check myweb                   --DONE
-    - check pdf file conversion     --DONE
-    - check repos			        --DONE
-    - check chrony			        --DONE
+    - check repos					--DONE
+    - check chrony					--DONE
     - validate_autofs				--DONE
-    - validate_autofs_public_private --DONE
-    - check selinux                 --DONE
-    - check collaboration directory --DONE
     - check_group					--DONE
     - check_users					--DONE
     - check_grp_membership			--DONE
     - check_usr_shell				--DONE
     - check_sudo					--DONE
     - check_umask					--DONE
-    - check_natasha_permissions		--DONE
+	- check_max_days				--DONE
     - check_enforce_password		--DONE
     - check_account_expiry			--DONE
-    - check_max_days				--DONE
+    - check collaboration directory	--DONE
+    - check selinux                	--DONE
     - check_group_pkg				--DONE
+    - check_bzip2_compression 		--DONE
+    - check_journal					--DONE
     - check_tuned_profile			--DONE
     - check_cron					--DONE
-    - check_natasha_cron_blocked	--DONE
-    - check_journal					--DONE
-    - check_bzip2_compression 		--DONE
-    - check_lv1_create_extend 		--DONE
-    - check_lv2_extents 			--DONE
-    - check_swap 					--DONE
-    - check_lv3_shrink 				--DONE
-    - check_perm_ACL_fstab 			--DONE
-    - check_directory_ACL  			--DONE
     - validate_find					--DONE
     - validate_grep					--DONE
+    - validate_shell_script			--DONE
+    - check_swap 					--DONE
+    - check_lvm_create_extend 		--DONE
+    - check_lvm_extents 			--DONE
+    - check_lvm_shrink				--DONE
+    - check webimage		        --DONE
+    - check_container_myweb         --DONE
+    - check_pdf_file_conversion     --DONE
   '
 if [ `id -u` != 0 ];then
         echo ""
@@ -122,174 +115,8 @@ check_IP() {
 }
 
 ###################################################################################
-# Check Q3(b) Container image webimage (user: frank)
-check_webimage25(){
-    echo "Check Q3 (a): Container image webimage25 (user: frank)"
-
-    su - frank -c "cd /home/frank && podman images --format '{{.Repository}}' | grep -E '(^|/)webimage25$'" &>/dev/null
-    st=$?
-
-    if [ $st -eq 0 ]; then
-        echo -e "\e[32mCheck Q3a webimage25: Pass\e[0m\n"
-    else
-        echo -e "\e[31mCheck Q3a webimage25: Fail\e[0m\n"
-    fi
-}
-################################################################################
-# Check Q3(b) Container image webimage (user: linda)
-check_webimage(){
-    echo "Check Q3 (b): Container image webimage (user: linda)"
-    
-    su - linda -c "cd /home/linda && podman images --format '{{.Repository}}' | grep -E '(^|/)webimage$'" &>/dev/null
-    st=$?
-
-    if [ $st -eq 0 ]; then
-        echo -e "\e[32mCheck Q3(b) webimage: Pass\e[0m\n"
-    else
-        echo -e "\e[31mCheck Q3(b) webimage: Fail\e[0m\n"
-    fi
-}
-
-################################################################################
-# Check Q4(a) Container container25 (user: frank)
-check_container25(){
-    echo "Check Q4 (a): Container25 (user: frank) ====="
-    FAIL_MSG=""
-    ALL_PASS=true
-
-    export XDG_RUNTIME_DIR="/run/user/$(id -u frank)"
-    WORKDIR="/home/frank"
-
-    # 1. Check container exists
-    if ! sudo -u frank bash -c "cd $WORKDIR && podman container inspect container25" &>/dev/null; then
-        FAIL_MSG+="[FAIL] Container 'container25' does not exist (for user frank).\n"
-        ALL_PASS=false
-    fi
-
-    # 2. Check correct image
-    IMAGE=$(sudo -u frank bash -c "cd $WORKDIR && podman inspect container25 --format '{{.Config.Image}}' 2>/dev/null")
-    if [[ -z "$IMAGE" ]]; then
-        FAIL_MSG+="[FAIL] Could not determine image for container25.\n"
-        ALL_PASS=false
-    elif [[ "$IMAGE" != "webimage25" && "$IMAGE" != "localhost/webimage25" && "$IMAGE" != "localhost/webimage25:latest" ]]; then
-        FAIL_MSG+="[FAIL] Wrong image used. Expected: webimage25 or localhost/webimage25 or localhost/webimage25:latest, Found: $IMAGE\n"
-        ALL_PASS=false
-    fi
-
-    # 3. Check mounts
-    if ! sudo -u frank bash -c "cd $WORKDIR && podman inspect container25 | jq -e '.[] | .Mounts[] | select(.Source==\"/opt/mydata\" and .Destination==\"/opt/newdata\")'" >/dev/null; then
-        FAIL_MSG+="[FAIL] Missing mount: /opt/mydata:/opt/newdata.\n"
-        ALL_PASS=false
-    fi
-    if ! sudo -u frank bash -c "cd $WORKDIR && podman inspect container25 | jq -e '.[] | .Mounts[] | select(.Source==\"/opt/web\" and .Destination==\"/var/www/html\")'" >/dev/null; then
-        FAIL_MSG+="[FAIL] Missing mount: /opt/web:/var/www/html.\n"
-        ALL_PASS=false
-    fi
-
-    # 4. Check port mapping
-    if ! sudo -u frank bash -c "cd $WORKDIR && podman inspect container25 | jq -e '.[] | .NetworkSettings.Ports.\"8080/tcp\"[] | select(.HostPort==\"9092\")'" >/dev/null; then
-        FAIL_MSG+="[FAIL] Port mapping incorrect or missing: expected 9092:8080.\n"
-        ALL_PASS=false
-    fi
-
-    # 5. Check systemd service
-    SERVICE_FILE="/home/frank/.config/systemd/user/container-container25.service"
-    if [ ! -f "$SERVICE_FILE" ]; then
-        FAIL_MSG+="[FAIL] Systemd service file missing: $SERVICE_FILE\n"
-        ALL_PASS=false
-    fi
-    # Proper rootless check with XDG_RUNTIME_DIR and DBUS
-    DBUS_ADDR=$(sudo -u frank bash -c 'echo $DBUS_SESSION_BUS_ADDRESS')
-    if ! sudo -u frank DBUS_SESSION_BUS_ADDRESS="$DBUS_ADDR" XDG_RUNTIME_DIR="/run/user/$(id -u frank)" systemctl --user is-enabled container-container25 &>/dev/null; then
-        FAIL_MSG+="[FAIL] Systemd service is NOT enabled for boot persistence.\n"
-        ALL_PASS=false
-    fi
-
-    # FINAL RESULT
-    if $ALL_PASS; then
-        echo -e "\e[32mCheck Q4(a) Container25 — All validations successful: Pass\e[0m\n"
-    else
-        echo -e echo -e "\e[32mQ4(a)$FAIL_MSG\e[0m\n"
-    fi
-}
-################################################################################
-# Check Q4(b) Container myweb (user: linda)
-check_myweb(){
-    echo "Check Q4 (b): Container myweb (user: linda)"
-    FAIL_MSG=""
-    ALL_PASS=true
-
-    export XDG_RUNTIME_DIR="/run/user/$(id -u linda)"
-    WORKDIR="/home/linda"
-
-    # 1. Check container exists
-    if ! sudo -u linda bash -c "cd $WORKDIR && podman container inspect myweb" &>/dev/null; then
-        FAIL_MSG+="[FAIL] Container 'myweb' does not exist (for user linda).\n"
-        ALL_PASS=false
-    fi
-
-    # 2. Check correct image
-    IMAGE=$(sudo -u linda bash -c "cd $WORKDIR && podman inspect myweb --format '{{.Config.Image}}' 2>/dev/null")
-    if [[ -z "$IMAGE" ]]; then
-        FAIL_MSG+="[FAIL] Could not determine image for myweb.\n"
-        ALL_PASS=false
-    elif [[ "$IMAGE" != "webimage" && "$IMAGE" != "localhost/webimage" && "$IMAGE" != "localhost/webimage:latest" ]]; then
-        FAIL_MSG+="[FAIL] Wrong image used. Expected: webimage or localhost/webimage, Found: $IMAGE\n"
-        ALL_PASS=false
-    fi
-
-    # 3. Check mounts
-    if ! sudo -u linda bash -c "cd $WORKDIR && podman inspect myweb | jq -e '.[] | .Mounts[] | select(.Source==\"/opt/process\" and .Destination==\"/mnt/new\")'" >/dev/null; then
-        FAIL_MSG+="[FAIL] Missing mount: /opt/process:/mnt/new.\n"
-        ALL_PASS=false
-    fi
-    if ! sudo -u linda bash -c "cd $WORKDIR && podman inspect myweb | jq -e '.[] | .Mounts[] | select(.Source==\"/opt/action\" and .Destination==\"/mnt/old\")'" >/dev/null; then
-        FAIL_MSG+="[FAIL] Missing mount: /opt/action:/mnt/old.\n"
-        ALL_PASS=false
-    fi
-
-    # 4. Check port mapping
-    if ! sudo -u linda bash -c "cd $WORKDIR && podman inspect myweb | jq -e '.[] | .NetworkSettings.Ports.\"8080/tcp\"[] | select(.HostPort==\"8085\")'" >/dev/null; then
-        FAIL_MSG+="[FAIL] Port mapping incorrect or missing: expected 8085:8080.\n"
-        ALL_PASS=false
-    fi
-
-    # 5. Check systemd service
-    SERVICE_FILE="/home/linda/.config/systemd/user/container-myweb.service"
-    if [ ! -f "$SERVICE_FILE" ]; then
-        FAIL_MSG+="[FAIL] Systemd service file missing: $SERVICE_FILE\n"
-        ALL_PASS=false
-    fi
-    # Proper rootless check with XDG_RUNTIME_DIR and DBUS
-    DBUS_ADDR=$(sudo -u linda bash -c 'echo $DBUS_SESSION_BUS_ADDRESS')
-    if ! sudo -u linda DBUS_SESSION_BUS_ADDRESS="$DBUS_ADDR" XDG_RUNTIME_DIR="/run/user/$(id -u linda)" systemctl --user is-enabled container-myweb &>/dev/null; then
-        FAIL_MSG+="[FAIL] Systemd service is NOT enabled for boot persistence.\n"
-        ALL_PASS=false
-    fi
-    # FINAL RESULT
-    if $ALL_PASS; then
-		echo -e "\e[32mCheck Q4(b) myweb — All validations successful: Pass\e[0m\n"
-    else
-        echo -e echo -e "\e[32mQ4(b)$FAIL_MSG\e[0m\n"
-    fi
-}
-
-check_pdf_file_conversion(){
-    echo "Check Q4 (b): File converted to PDF..."
-
-    [ -f /opt/process/my_file1.pdf ]
-    st=$?
-
-    if [ $st -eq 0 ]; then
-        echo -e "\e[32mCheck Q4(b) PDF: Pass\e[0m\n"
-    else
-        echo -e "\e[31mCheck Q4(b) PDF: Fail\e[0m\n"
-    fi
-}
-
-################################################################################
 check_repos(){
-   echo "Q5: Checking Repositories.........."
+   echo "Q3: Checking Repositories.........."
 app_chk=$(yum repolist enabled | grep -i AppStream | wc -l)
 base_chk=$(yum repolist enabled | grep -i BaseOs | wc -l)
 
@@ -306,7 +133,7 @@ base_chk=$(yum repolist enabled | grep -i BaseOs | wc -l)
 }
 #####################################################################################
 check_chrony() {
-    echo "Q6: Checking Chrony service..."
+    echo "Q4: Checking Chrony service..."
     
     # Service active?
     if systemctl is-active --quiet chronyd; then
@@ -328,7 +155,7 @@ check_chrony() {
 ######################################################################################
 user_name="user1"
 validate_autofs() {
-    echo "Q7: Checking Autofs......."
+    echo "Q5: Checking Autofs......."
 
     # cleanup any previous test file
     rm -f /rhome/$user_name/uniq1 &>/dev/null
@@ -348,154 +175,9 @@ validate_autofs() {
     fi
 }
 ######################################################################################
-validate_autofs_public_private() {
-    echo "Q8: Validating Autofs Public/Private Shares..."
-    # paths
-    pub="/automount/public"
-    priv="/automount/private"
-    testfile_pub="$pub/testfile"
-    testfile_priv="$priv/testfile"
-
-    # --- 1. Trigger autofs mounts ---
-    ls $pub &>/dev/null
-    pub_access=$?
-
-    ls $priv &>/dev/null
-    priv_access=$?
-
-    # --- 2. Check mount status ---
-    mount | grep "$pub" &>/dev/null
-    pub_mounted=$?
-
-    mount | grep "$priv" &>/dev/null
-    priv_mounted=$?
-
-    # --- 3. Check Public is READ-ONLY ---
-    touch $testfile_pub &>/dev/null
-    pub_write=$?    # must fail → should return non-zero
-
-    # --- 4. Check Private is READ-WRITE ---
-    touch $testfile_priv &>/dev/null
-    priv_write=$?   # must succeed → 0
-
-    # --- 5. Autounmount Test ---
-    sleep 5         # small wait to allow autofs to unmount
-    mount | grep "$pub" &>/dev/null
-    pub_unmount=$?
-
-    mount | grep "$priv" &>/dev/null
-    priv_unmount=$?
-
-    # --- Final Result ---
-    if [[ $pub_access -eq 0 && $priv_access -eq 0 \
-          && $pub_mounted -eq 0 && $priv_mounted -eq 0 \
-          && $pub_write -ne 0 && $priv_write -eq 0 ]]; then
-
-        echo -e "\e[32mAutofs_Mount_Check: Pass\e[0m"
-    else
-        echo -e "\e[31mAutofs_Mount_Check: Fail\e[0m"
-    fi
-}
-######################################################################################
-check_selinux() {
-    echo "Q9: Validating Webserver selinux file context, firewall rule & selinux Port 82..."
-
-    # Check website content
-    webpage_content=$(curl -s --max-time 3 http://localhost:82)
-    curl_status=$?
-
-    # Check firewall for port 82
-    firewall-cmd --list-ports 2>/dev/null | grep -q '^82/tcp'
-    fw_status=$?
-
-    # Check if SELinux allows port 82 for HTTP
-    semanage port -l 2>/dev/null | grep -E '^http_port_t' | grep -q '\b82\b'
-    selinux_port_status=$?
-
-    
-    if [ $curl_status -eq 0 ] && [ "$webpage_content" = "I am enjoying RHCSA preparation" ]; then
-        echo -e "\e[32mSelinux_Web_Running: Pass\e[0m"
-    else
-        echo -e "\e[31mSelinux_Web_Running: Fail\e[0m"
-    fi
-
-      if [ $fw_status -eq 0 ]; then
-        echo -e "\e[32mSelinux_Web_Firewall_Port: Pass\e[0m"
-    else
-        echo -e "\e[31mSelinux_Web_Firewall_Port: Fail\e[0m"
-    fi
-
-    if [ $selinux_port_status -eq 0 ]; then
-        echo -e "\e[32mSelinux_HTTP_Port_Label: Pass\e[0m"
-    else
-        echo -e "\e[31mSelinux_HTTP_Port_Label: Fail\e[0m"
-    fi
-
-    echo
-}
-################################################################################
-check_collaboration_dir() {
-
-    echo "Q10: Validating Collaboration Directory /project ..."
-    echo
-
-    dir="/project"
-    group="developers"
-
-    r1=r2=r3=r4=r5="FAIL"
-
-    # Step 1: Directory exists
-    if [ -d "$dir" ]; then
-        echo -e "\e[32m[1] Directory exists: PASS\e[0m"
-        r1="PASS"
-    else
-        echo -e "\e[31m[1] Directory exists: FAIL\e[0m"
-        echo -e "\n\e[31mCollaboration Directory: FAIL\e[0m"
-        return
-    fi
-
-    # Step 2: Group ownership
-    dir_group=$(stat -c "%G" "$dir")
-    if [ "$dir_group" = "$group" ]; then
-        echo -e "\e[32m[2] Group = developers: PASS\e[0m"
-        r2="PASS"
-    else
-        echo -e "\e[31m[2] Group ownership: FAIL (Found $dir_group)\e[0m"
-    fi
-
-    # Step 3: Permissions (770, 2770, 3770 allowed)
-    perm=$(stat -c "%a" "$dir")
-    if [[ "$perm" =~ ^(770|2770|3770)$ ]]; then
-        echo -e "\e[32m[3] Permissions correct (770 family): PASS\e[0m"
-        r3="PASS"
-    else
-        echo -e "\e[31m[3] Permissions incorrect: FAIL (Found $perm)\e[0m"
-    fi
-
-    # Step 4: SGID bit
-    stat -c "%A" "$dir" | grep -q "s" &&
-        echo -e "\e[32m[4] SGID bit: PASS\e[0m" && r4="PASS" ||
-        echo -e "\e[31m[4] SGID bit: FAIL\e[0m"
-
-    # Step 5: Sticky bit
-    stat -c "%A" "$dir" | grep -q "T" &&
-        echo -e "\e[32m[5] Sticky bit: PASS\e[0m" && r5="PASS" ||
-        echo -e "\e[31m[5] Sticky bit: FAIL\e[0m"
-
-    # Final Status
-    echo
-    if [[ "$r1$r2$r3$r4$r5" == "PASSPASSPASSPASSPASS" ]]; then
-        echo -e "\e[32mCollaboration Directory: PASS\e[0m"
-    else
-        echo -e "\e[31mCollaboration Directory: FAIL\e[0m"
-    fi
-
-    echo
-}
-################################################################################
 grp="admins"
 check_group(){
-      echo "Q11: Check User & Group Tasks"
+      echo "Q6: Check User & Group Tasks"
 	  echo "Check Group Exists ...."
       if [ `getent group admins` ];then
         echo -e "\e[32mGroup: Pass\e[0m\n"
@@ -580,27 +262,22 @@ check_umask(){
            echo -e "\e[31mUMASK: Fail\e[0m\n"
    fi
 }
-check_natasha_permissions() {
-    echo "Check default permissions for user 'natasha'..."
-	des_umask="0277"
-   	current_umask=`su - natasha -c 'umask'`
-    
-    if [ $des_umask = $current_umask ]; then
-        echo -e "\e[32ma) Default file permissions for natasha: Pass\e[0m\n" 
-    else
-        echo -e "\e[31mb) Default file permissions for natasha: Fail\e[0m\n"
-    fi
+#####################################################################################
+check_max_days() {
+    echo "Q7: Check password Policy ....."
+    echo "Check Max Days ....."
 
-    if [ $des_umask = $current_umask ]; then
-        echo -e "\e[32mb) Default directory permissions for natasha: Pass\e[0m\n" 
+    max_d=$(awk '/^PASS_MAX_DAYS/ {print $2}' /etc/login.defs)
+
+    if [ "$max_d" = "90" ]; then
+        echo -e "\e[32mmax_days: Pass\e[0m\n"
     else
-        echo -e "\e[31mb) Default directory permissions for natasha: Fail\e[0m\n"
+        echo -e "\e[31mmax_days: Fail\e[0m\n"
     fi
 }
-#####################################################################################
-
+######################################################################################################
 check_enforce_password(){
-    echo "Q12: Check password Expiration ....."
+    echo "Q8: Check password Expiration ....."
     echo "Check password change enforce ....."
     user_n="max"
     chage -l "$user_n" |head -n1|grep -w 'password must be changed'&>/dev/null
@@ -611,7 +288,6 @@ check_enforce_password(){
         echo -e "\e[31menforce_pw_change: Fail\e[0m\n"
     fi
 }
-
 check_account_expiry(){
    echo "Check account expiration ......"
    des_exp_d=45
@@ -632,21 +308,102 @@ check_account_expiry(){
 
 }
 #######################################################################################################
-check_max_days() {
-    echo "Q13: Check password Policy ....."
-    echo "Check Max Days ....."
+check_collaboration_dir() {
+    echo "Q9: Validating Collaboration Directory /tmp/web ..."
+    echo
+    dir="/tmp/web"
+    group="developers"
 
-    max_d=$(awk '/^PASS_MAX_DAYS/ {print $2}' /etc/login.defs)
+    r1=r2=r3=r4=r5="FAIL"
 
-    if [ "$max_d" = "90" ]; then
-        echo -e "\e[32mmax_days: Pass\e[0m\n"
+    # Step 1: Directory exists
+    if [ -d "$dir" ]; then
+        echo -e "\e[32m[1] Directory exists: PASS\e[0m"
+        r1="PASS"
     else
-        echo -e "\e[31mmax_days: Fail\e[0m\n"
+        echo -e "\e[31m[1] Directory exists: FAIL\e[0m"
+        echo -e "\n\e[31mCollaboration Directory: FAIL\e[0m"
+        return
     fi
+
+    # Step 2: Group ownership
+    dir_group=$(stat -c "%G" "$dir")
+    if [ "$dir_group" = "$group" ]; then
+        echo -e "\e[32m[2] Group = developers: PASS\e[0m"
+        r2="PASS"
+    else
+        echo -e "\e[31m[2] Group ownership: FAIL (Found $dir_group)\e[0m"
+    fi
+
+    # Step 3: Permissions (770, 2770, 3770 allowed)
+    perm=$(stat -c "%a" "$dir")
+    if [[ "$perm" =~ ^(770|2770|3770)$ ]]; then
+        echo -e "\e[32m[3] Permissions correct (770 family): PASS\e[0m"
+        r3="PASS"
+    else
+        echo -e "\e[31m[3] Permissions incorrect: FAIL (Found $perm)\e[0m"
+    fi
+
+    # Step 4: SGID bit
+    stat -c "%A" "$dir" | grep -q "s" &&
+        echo -e "\e[32m[4] SGID bit: PASS\e[0m" && r4="PASS" ||
+        echo -e "\e[31m[4] SGID bit: FAIL\e[0m"
+
+    # Step 5: Sticky bit
+    stat -c "%A" "$dir" | grep -q "T" &&
+        echo -e "\e[32m[5] Sticky bit: PASS\e[0m" && r5="PASS" ||
+        echo -e "\e[31m[5] Sticky bit: FAIL\e[0m"
+
+    # Final Status
+    echo
+    if [[ "$r1$r2$r3$r4$r5" == "PASSPASSPASSPASSPASS" ]]; then
+        echo -e "\e[32mCollaboration Directory: PASS\e[0m"
+    else
+        echo -e "\e[31mCollaboration Directory: FAIL\e[0m"
+    fi
+
+    echo
 }
-######################################################################################################
+################################################################################
+check_selinux() {
+    echo "Q10: Validating Webserver firewall rule & selinux Port 83..."
+
+    # Check website content
+    webpage_content=$(curl -s --max-time 3 http://localhost:83)
+    curl_status=$?
+
+    # Check firewall for port 83
+    firewall-cmd --list-ports 2>/dev/null | grep -q '^83/tcp'
+    fw_status=$?
+
+    # Check if SELinux allows port 83 for HTTP
+    semanage port -l 2>/dev/null | grep -E '^http_port_t' | grep -q '\b83\b'
+    selinux_port_status=$?
+
+    
+    if [ $curl_status -eq 0 ] && [ "$webpage_content" = "Practicing RHCSA9" ]; then
+        echo -e "\e[32mSelinux_Web_Running: Pass\e[0m"
+    else
+        echo -e "\e[31mSelinux_Web_Running: Fail\e[0m"
+    fi
+
+      if [ $fw_status -eq 0 ]; then
+        echo -e "\e[32mSelinux_Web_Firewall_Port: Pass\e[0m"
+    else
+        echo -e "\e[31mSelinux_Web_Firewall_Port: Fail\e[0m"
+    fi
+
+    if [ $selinux_port_status -eq 0 ]; then
+        echo -e "\e[32mSelinux_HTTP_Port_Label: Pass\e[0m"
+    else
+        echo -e "\e[31mSelinux_HTTP_Port_Label: Fail\e[0m"
+    fi
+
+    echo
+}
+################################################################################
 check_group_pkg() {
-    echo "Q14: Check Group Software Install ......"
+    echo "Q11: Check Group Software Install ......"
     dnf grouplist --installed | grep -w "RPM Development Tools" &>/dev/null
     pk_e=$?
 
@@ -657,8 +414,30 @@ check_group_pkg() {
     fi
 }
 ######################################################################################################
+check_bzip2_compression(){
+  echo "Q12: Checking bzip2 compression..."
+  file_n="/tmp/archive.tar"
+
+  if file "$file_n" | grep -q "bzip2 compressed data"; then
+    echo -e "\e[32mbzip2_compression: PASS\e[0m\n"
+  else
+    echo -e "\e[31mbzip2_compression: FAIL\e[0m\n"
+  fi
+}
+################################################################################
+check_journal(){
+  echo "Q13: Checking persistent journal..."
+  journal_dir="/var/log/journal"
+
+  if [ -d "$journal_dir" ] && [ "$(ls -A "$journal_dir")" ]; then
+    echo -e "\e[32mpersistent_journal: PASS\e[0m\n"
+  else
+    echo -e "\e[31mpersistent_journal: FAIL\e[0m\n"
+  fi
+}
+################################################################################
 check_tuned_profile() {
-  echo "Q15: Checking tuned profile..."
+  echo "Q14: Checking tuned profile..."
 
   recommended_profile=$(tuned-adm recommend 2>/dev/null | xargs)
   current_profile=$(tuned-adm active 2>/dev/null | grep -oP '(?<=profile: ).*' | xargs)
@@ -676,49 +455,16 @@ check_tuned_profile() {
 }
 ################################################################################
 check_cron(){
-  echo "Q16: Checking cron job log entry..."
+  echo "Q15: Checking cron job log entry..."
   
-  if grep -q "RHCSA9" /var/log/messages; then
+  if grep -q "I am preparing RHCSA9 Exam" /var/log/messages; then
     echo -e "\e[32mcron: PASS\e[0m\n"
   else
     echo -e "\e[31mcron: FAIL\e[0m\n"
   fi 
 }
-
-check_natasha_cron_blocked(){
-  echo "Q16: Checking if user 'natasha' is blocked from creating cron jobs..."
-
-  if grep -q "^natasha$" /etc/cron.deny; then
-    echo -e "\e[32mcron_block_natasha: PASS (user denied in /etc/cron.deny)\e[0m\n"
-  elif [ -f /etc/cron.allow ] && ! grep -q "^natasha$" /etc/cron.allow; then
-    echo -e "\e[32mcron_block_natasha: PASS (user not in /etc/cron.allow)\e[0m\n"
-  else
-    echo -e "\e[31mcron_block_natasha: FAIL (user can create cron jobs)\e[0m\n"
-  fi
-}
 ################################################################################
-check_journal(){
-  echo "Q17: Checking persistent journal..."
-  journal_dir="/var/log/journal"
 
-  if [ -d "$journal_dir" ] && [ "$(ls -A "$journal_dir")" ]; then
-    echo -e "\e[32mpersistent_journal: PASS\e[0m\n"
-  else
-    echo -e "\e[31mpersistent_journal: FAIL\e[0m\n"
-  fi
-}
-################################################################################
-check_bzip2_compression(){
-  echo "Q18: Checking bzip2 compression..."
-  file_n="/tmp/archive.tar"
-
-  if file "$file_n" | grep -q "bzip2 compressed data"; then
-    echo -e "\e[32mbzip2_compression: PASS\e[0m\n"
-  else
-    echo -e "\e[31mbzip2_compression: FAIL\e[0m\n"
-  fi
-}
-################################################################################
 check_lv1_create_extend() {
     echo "Checking Q19: LVM Create & Extend (/app1) ......."
 
