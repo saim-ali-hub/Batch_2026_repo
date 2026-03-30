@@ -29,9 +29,9 @@ echo -e "\n\e[37m***********************RUNNING NOW*****************************
     - validate_grep					--DONE
     - validate_shell_script			--DONE
     - check_swap 					--DONE
-    - check_lvm_create_extend 		--DONE
-    - check_lvm_extents 			--DONE
-    - check_lvm_shrink				--DONE
+    - check_lv1_create_extend 		--DONE
+    - check_lv2_extents 			--DONE
+    - check_lv3_shrink				--DONE
     - check webimage		        --DONE
     - check_container_myweb         --DONE
     - check_pdf_file_conversion     --DONE
@@ -464,9 +464,111 @@ check_cron(){
   fi 
 }
 ################################################################################
+validate_find() {
+    echo "Q16: Validating Find tasks ......"
 
+    # i) Files newer than 5 days
+    if [ -s /tmp/file-logs ] && find /var/log -type f -mtime -5 | grep -q "$(head -n1 /tmp/file-logs | awk '{print $NF}')"; then
+        echo -e "\e[32mFiles newer than 5 days (i): PASS\e[0m\n"
+    else
+        echo -e "\e[31mFiles newer than 5 days (i): Fail\e[0m\n"
+    fi
+
+    # ii) Files 1MB-5MB copied
+    copied_files=$(ls -l /backup/logfiles 2>/dev/null)
+    if [ -n "$copied_files" ] && find /var/log -type f -size +1M -size -5M | grep -q "$(ls -1 /backup/logfiles | head -n1)"; then
+        echo -e "\e[32mFiles 1MB-5MB copied (ii): PASS\e[0m\n"
+    else
+        echo -e "\e[31mFiles 1MB-5MB copied (ii): Fail\e[0m\n"
+    fi
+
+    # iii) Directories owned by linda copied
+    if [ -d /var/tmp/linda ] && find /opt -type d -user linda | grep -q "$(ls -1 /var/tmp/linda | head -n1)"; then
+        echo -e "\e[32mDirectories owned by linda copied (iii): PASS\e[0m\n"
+    else
+        echo -e "\e[31mDirectories owned by linda copied (iii): Fail\e[0m\n"
+    fi
+
+    # iv) Setgid files list
+    if [ -s /tmp/setgid_files ] && grep -q "s" /tmp/setgid_files; then
+        echo -e "\e[32mSetgid files list (iv): PASS\e[0m\n"
+    else
+        echo -e "\e[31mSetgid files list (iv): Fail\e[0m\n"
+    fi
+}
+#################################################################################################
+validate_grep() {
+    echo "Q17: Validating Grep tasks ......"
+
+    # i) Check empty lines removed, line numbers present
+    if [ -s /tmp/new_file ] && ! grep -q '^$' /tmp/new_file && grep -q '^[0-9]\+:' /tmp/new_file; then
+        echo -e "\e[32mCheck empty lines removed, line numbers present (i): PASS\e[0m\n"
+    else
+        echo -e "\e[31mCheck empty lines removed, line numbers present (i): Fail\e[0m\n"
+    fi
+
+    # ii) Exclude commented and empty lines
+    if [ -s /tmp/ssh-data ] && ! grep -q '^#' /tmp/ssh-data && ! grep -q '^$' /tmp/ssh-data; then
+        echo -e "\e[32mExclude commented and empty lines (ii): PASS\e[0m\n"
+    else
+        echo -e "\e[31mExclude commented and empty lines (ii): Fail\e[0m\n"
+    fi
+
+    # iii) Check log string exists
+    if [ -s /tmp/log_msg ] && grep -q "I am preparing RHCSA9 Exam" /tmp/log_msg; then
+        echo -e "\e[32mlog string exists (iii): PASS\e[0m\n"
+    else
+        echo -e "\e[31mlog string exists (iii): Fail\e[0m\n"
+    fi
+}
+###################################################################################################
+validate_shell_script() {
+	echo "Q18: Validating shell script ......"
+    SCRIPT="/tmp/myscript"
+
+    # Run as natasha
+    output_natasha=$(sudo -u natasha bash "$SCRIPT" 2>/dev/null)
+
+    # Run as another user
+    output_other=$(sudo -u nobody bash "$SCRIPT" 2>/dev/null)
+
+    # Check conditions
+    if [ "$output_natasha" = "Hello Learners" ] && [ -z "$output_other" ]; then
+        echo -e "\e[32mshell script is validated: PASS\e[0m\n"
+    else
+        echo -e "\e[31mshell script is not validated: FAIL\e[0m"
+    fi
+}
+###################################################################################################
+check_swap() {
+    echo "Checking Q19: Swap Configuration ......."
+
+    swapon --show | grep -q "/dev/sdc1"
+    swp_st=$?
+
+    if [ $swp_st -ne 0 ]; then
+        echo -e "\e[31mSwap device /dev/sdc1 not active: Fail\e[0m\n"
+        return
+    fi
+
+    swap_size=$(lsblk -b /dev/sdc1 | awk 'NR==2 {print int($4/1024/1024)}')
+
+    if [ "$swap_size" -ge 500 ] && [ "$swap_size" -le 520 ]; then
+        echo -e "\e[32mSwap size ${swap_size}MB: Pass\e[0m"
+    else
+        echo -e "\e[31mSwap size ${swap_size}MB: Fail\e[0m"
+    fi
+
+    grep -q "/dev/sdc1" /etc/fstab
+    if [ $? -eq 0 ]; then
+        echo -e "\e[32mPersistent swap entry: Pass\e[0m\n"
+    else
+        echo -e "\e[31mMissing fstab entry: Fail\e[0m\n"
+    fi
+}
+################################################################################
 check_lv1_create_extend() {
-    echo "Checking Q19: LVM Create & Extend (/app1) ......."
+    echo "Checking Q20: LVM Create & Extend (/app1) ......."
 
     mp="/app1"
     vg="vg1"
@@ -476,31 +578,31 @@ check_lv1_create_extend() {
     mp_st=$?
 
     if [ $mp_st -ne 0 ]; then
-        echo -e "\e[31mQ19: Mount point $mp not found → Fail\e[0m\n"
+        echo -e "\e[31mMount point $mp not found: Fail\e[0m\n"
         return
     fi
 
     vgs | grep -w "$vg" >/dev/null 2>&1 || {
-        echo -e "\e[31mQ19: VG $vg missing → Fail\e[0m\n"
+        echo -e "\e[31mVG $vg missing: Fail\e[0m\n"
         return
     }
 
     lvs | grep -w "$lv" >/dev/null 2>&1 || {
-        echo -e "\e[31mQ19: LV $lv missing → Fail\e[0m\n"
+        echo -e "\e[31mLV $lv missing: Fail\e[0m\n"
         return
     }
 
     fs_size=$(df -m "$mp" | awk 'NR==2 {print $2}')
 
     if [ "$fs_size" -ge 450 ] && [ "$fs_size" -le 500 ]; then
-        echo -e "\e[32mQ19: Filesystem size ${fs_size}M → Pass\e[0m\n"
+        echo -e "\e[32mFilesystem size ${fs_size}M: Pass\e[0m\n"
     else
-        echo -e "\e[31mQ19: Filesystem size ${fs_size}M → Fail\e[0m\n"
+        echo -e "\e[31mFilesystem size is not ${fs_size}M: Fail\e[0m\n"
     fi
 }
 ################################################################################
 check_lv2_extents() {
-    echo "Checking Q20: LVM with Specific Extents (/app2) ......."
+    echo "Checking Q22: LVM with Specific Extents (/app2) ......."
 
     vg="vg2"
     lv="lv2"
@@ -509,56 +611,29 @@ check_lv2_extents() {
     req_le=50
 
     vgs | grep -w "$vg" >/dev/null 2>&1 || {
-        echo -e "\e[31mQ20: VG $vg missing → Fail\e[0m\n"
+        echo -e "\e[31mVG $vg missing: Fail\e[0m\n"
         return
     }
 
     pe_size=$(vgdisplay "$vg" | awk '/PE Size/ {print int($3)}')
     if [ "$pe_size" -eq "$req_pe" ]; then
-        echo -e "\e[32mQ20 Task1: PE Size = ${pe_size}MiB → Pass\e[0m"
+        echo -e "\e[32mPE Size = ${pe_size}MiB: Pass\e[0m"
     else
-        echo -e "\e[31mQ20 Task1: PE Size = ${pe_size}MiB → Fail\e[0m"
+        echo -e "\e[31mPE Size is not equal ${pe_size}MiB: Fail\e[0m"
     fi
 
     le_count=$(lvdisplay /dev/$vg/$lv 2>/dev/null | awk '/Current LE/ {print $3}')
     if [ "$le_count" -eq "$req_le" ]; then
-        echo -e "\e[32mQ20 Task2: LE Count = ${le_count} → Pass\e[0m"
+        echo -e "\e[32mLE Count = ${le_count} → Pass\e[0m"
     else
-        echo -e "\e[31mQ20 Task2: LE Count = ${le_count} → Fail\e[0m"
+        echo -e "\e[31mLE Count is not ${le_count}: Fail\e[0m"
     fi
 
     mount | grep -q " $mp "
     if [ $? -eq 0 ]; then
-        echo -e "\e[32mQ20 Task3: Mounted on $mp → Pass\e[0m\n"
+        echo -e "\e[32mMounted on $mp: Pass\e[0m\n"
     else
-        echo -e "\e[31mQ20 Task3: Mount missing → Fail\e[0m\n"
-    fi
-}
-################################################################################
-check_swap() {
-    echo "Checking Q21: Swap Configuration ......."
-
-    swapon --show | grep -q "/dev/sdc1"
-    swp_st=$?
-
-    if [ $swp_st -ne 0 ]; then
-        echo -e "\e[31mQ21: Swap device /dev/sdc1 not active → Fail\e[0m\n"
-        return
-    fi
-
-    swap_size=$(lsblk -b /dev/sdc1 | awk 'NR==2 {print int($4/1024/1024)}')
-
-    if [ "$swap_size" -ge 500 ] && [ "$swap_size" -le 520 ]; then
-        echo -e "\e[32mQ21: Swap size ${swap_size}MB → Pass\e[0m"
-    else
-        echo -e "\e[31mQ21: Swap size ${swap_size}MB → Fail\e[0m"
-    fi
-
-    grep -q "/dev/sdc1" /etc/fstab
-    if [ $? -eq 0 ]; then
-        echo -e "\e[32mQ21: Persistent swap entry → Pass\e[0m\n"
-    else
-        echo -e "\e[31mQ21: Missing fstab entry → Fail\e[0m\n"
+        echo -e "\e[31mMount point $mp is missing: Fail\e[0m\n"
     fi
 }
 ################################################################################
@@ -571,171 +646,101 @@ check_lv3_shrink() {
 
     mount | grep -q " $mp "
     if [ $? -ne 0 ]; then
-        echo -e "\e[31mQ22: Mount $mp missing → Fail\e[0m\n"
+        echo -e "\e[31mMount point $mp is missing: Fail\e[0m\n"
         return
     fi
 
     fs_size=$(df -m "$mp" | awk 'NR==2 {print $2}')
 
     if [ "$fs_size" -ge 250 ] && [ "$fs_size" -le 300 ]; then
-        echo -e "\e[32mQ22: Filesystem size ${fs_size}M → Pass\e[0m\n"
+        echo -e "\e[32mFilesystem size is = ${fs_size}M: Pass\e[0m\n"
     else
-        echo -e "\e[31mQ22: Filesystem size ${fs_size}M → Fail\e[0m\n"
+        echo -e "\e[31mFilesystem size is not equal ${fs_size}M: Fail\e[0m\n"
     fi
 }
 ################################################################################
-check_perm_ACL_fstab() {
-    echo "Checking Q23.a: Permissions and ACL on /var/tmp/fstab ......"
-
-    file="/var/tmp/fstab"
-
-    [ -f "$file" ] || {
-        echo -e "\e[31mQ23.a: File $file not found → Fail\e[0m\n"
-        return
-    }
-
-    owner=$(stat -c %U "$file")
-    group=$(stat -c %G "$file")
-    perms=$(stat -c %A "$file")
-
-    # Owner check
-    [ "$owner" = "root" ] && \
-        echo -e "\e[32mOwner root → Pass\e[0m" || \
-        echo -e "\e[31mOwner $owner → Fail\e[0m"
-
-    # Group check
-    [ "$group" = "root" ] && \
-        echo -e "\e[32mGroup root → Pass\e[0m" || \
-        echo -e "\e[31mGroup $group → Fail\e[0m"
-
-    # Executable check
-    echo "$perms" | grep -q 'x' && \
-        echo -e "\e[31mExecutable permission found → Fail\e[0m" || \
-        echo -e "\e[32mNot executable → Pass\e[0m"
-
-    getfacl -p /var/tmp/fstab 2>/dev/null | grep '^user:natasha:rw-' &>/dev/null
-    st1=$?
-
-    getfacl -p /var/tmp/fstab 2>/dev/null | grep '^user:harry:---' &>/dev/null
-    st2=$?
+check_webimage(){
+    echo "Check Q23: Container Management I - image webimage (user: linda)"
     
-    getfacl -p /var/tmp/fstab 2>/dev/null | grep '^other::r--' &>/dev/null
-    st3=$?
+    su - linda -c "cd /home/linda && podman images --format '{{.Repository}}' | grep -E '(^|/)webimage$'" &>/dev/null
+    st=$?
 
-    if [ $st1 -eq 0 ] && [ $st2 -eq 0 ] && [ $st3 -eq 0 ]; then
-        echo -e "\e[32mCheck Q23a: Pass\e[0m\n"
+    if [ $st -eq 0 ]; then
+        echo -e "\e[32mCheck webimage: Pass\e[0m\n"
     else
-        echo -e "\e[31mCheck Q23a: Fail\e[0m\n"
+        echo -e "\e[31mCheck webimage: Fail\e[0m\n"
     fi
 }
 ################################################################################
-check_directory_ACL() {
-    echo "Checking Q23.b: Directory ACL on /tmp/data2 ......"
+check_myweb(){
+    echo "Check Q24:  Container Management II - Container myweb (user: linda)"
+    FAIL_MSG=""
+    ALL_PASS=true
 
-    dir="/tmp/data2"
+    export XDG_RUNTIME_DIR="/run/user/$(id -u linda)"
+    WORKDIR="/home/linda"
 
-    [ -d "$dir" ] || {
-        echo -e "\e[31mQ23.b: Directory $dir not found → Fail\e[0m\n"
-        return
-    }
+    # 1. Check container exists
+    if ! sudo -u linda bash -c "cd $WORKDIR && podman container inspect myweb" &>/dev/null; then
+        FAIL_MSG+="[FAIL] Container 'myweb' does not exist (for user linda).\n"
+        ALL_PASS=false
+    fi
 
-    owner=$(stat -c %U "$dir")
+    # 2. Check correct image
+    IMAGE=$(sudo -u linda bash -c "cd $WORKDIR && podman inspect myweb --format '{{.Config.Image}}' 2>/dev/null")
+    if [[ -z "$IMAGE" ]]; then
+        FAIL_MSG+="[FAIL] Could not determine image for myweb.\n"
+        ALL_PASS=false
+    elif [[ "$IMAGE" != "webimage" && "$IMAGE" != "localhost/webimage" && "$IMAGE" != "localhost/webimage:latest" ]]; then
+        FAIL_MSG+="[FAIL] Wrong image used. Expected: webimage or localhost/webimage, Found: $IMAGE\n"
+        ALL_PASS=false
+    fi
 
-    [ "$owner" = "linda" ] && \
-        echo -e "\e[32mOwner linda → Pass\e[0m" || \
-        echo -e "\e[31mOwner $owner → Fail\e[0m"
+    # 3. Check mounts
+    if ! sudo -u linda bash -c "cd $WORKDIR && podman inspect myweb | jq -e '.[] | .Mounts[] | select(.Source==\"/opt/process\" and .Destination==\"/mnt/new\")'" >/dev/null; then
+        FAIL_MSG+="[FAIL] Missing mount: /opt/process:/mnt/new.\n"
+        ALL_PASS=false
+    fi
+    if ! sudo -u linda bash -c "cd $WORKDIR && podman inspect myweb | jq -e '.[] | .Mounts[] | select(.Source==\"/opt/action\" and .Destination==\"/mnt/old\")'" >/dev/null; then
+        FAIL_MSG+="[FAIL] Missing mount: /opt/action:/mnt/old.\n"
+        ALL_PASS=false
+    fi
 
-    # Bob rw access via ACL
-    getfacl -p "$dir" 2>/dev/null | grep -q "^user:bob:rw-" && \
-        echo -e "\e[32mACL bob rw → Pass\e[0m" || \
-        echo -e "\e[31mACL bob rw → Fail\e[0m"
+    # 4. Check port mapping
+    if ! sudo -u linda bash -c "cd $WORKDIR && podman inspect myweb | jq -e '.[] | .NetworkSettings.Ports.\"8080/tcp\"[] | select(.HostPort==\"8085\")'" >/dev/null; then
+        FAIL_MSG+="[FAIL] Port mapping incorrect or missing: expected 8085:8080.\n"
+        ALL_PASS=false
+    fi
 
-    # Others no access
-    other_perm=$(stat -c %a "$dir" | cut -c3)
-    [ "$other_perm" = "0" ] && \
-        echo -e "\e[32mOthers no access → Pass\e[0m\n" || \
-        echo -e "\e[31mOthers permission incorrect → Fail\e[0m\n"
+    # 5. Check systemd service
+    SERVICE_FILE="/home/linda/.config/systemd/user/container-myweb.service"
+    if [ ! -f "$SERVICE_FILE" ]; then
+        FAIL_MSG+="[FAIL] Systemd service file missing: $SERVICE_FILE\n"
+        ALL_PASS=false
+    fi
+    # Proper rootless check with XDG_RUNTIME_DIR and DBUS
+    DBUS_ADDR=$(sudo -u linda bash -c 'echo $DBUS_SESSION_BUS_ADDRESS')
+    if ! sudo -u linda DBUS_SESSION_BUS_ADDRESS="$DBUS_ADDR" XDG_RUNTIME_DIR="/run/user/$(id -u linda)" systemctl --user is-enabled container-myweb &>/dev/null; then
+        FAIL_MSG+="[FAIL] Systemd service is NOT enabled for boot persistence.\n"
+        ALL_PASS=false
+    fi
+    # FINAL RESULT
+    if $ALL_PASS; then
+		echo -e "\e[32mCheck myweb — All validations successful: Pass\e[0m\n"
+    else
+        echo -e echo -e "\e[32mCheck myweb — $FAIL_MSG\e[0m\n"
+    fi
+}
+check_pdf_file_conversion(){
+    echo "Check File converted to PDF..."
+
+    [ -f /opt/process/my_file1.pdf ]
+    st=$?
+
+    if [ $st -eq 0 ]; then
+        echo -e "\e[32mCheck file converted to PDF: Pass\e[0m\n"
+    else
+        echo -e "\e[31mCheck file is not converted to PDF: Fail\e[0m\n"
+    fi
 }
 ################################################################################
-validate_find() {
-    echo "Q24: Validating Find tasks ......"
-
-    # i) Files newer than 5 days
-    if [ -s /tmp/file-logs ] && find /var/log -type f -mtime -5 | grep -q "$(head -n1 /tmp/file-logs | awk '{print $NF}')"; then
-        echo -e "\e[32m24(i): → PASS\e[0m\n"
-    else
-        echo -e "\e[31m24(i) → Fail\e[0m\n"
-    fi
-
-    # ii) Files 1MB-2MB copied
-    copied_files=$(ls -l /backup/logfiles 2>/dev/null)
-    if [ -n "$copied_files" ] && find /var/log -type f -size +1M -size -5M | grep -q "$(ls -1 /backup/logfiles | head -n1)"; then
-        echo -e "\e[32m24(ii): → PASS\e[0m\n"
-    else
-        echo -e "\e[31m24(ii) → Fail\e[0m\n"
-    fi
-
-    # iii) Directories owned by linda copied
-    if [ -d /var/tmp/linda ] && find /opt -type d -user linda | grep -q "$(ls -1 /var/tmp/linda | head -n1)"; then
-        echo -e "\e[32m24(iii): → PASS\e[0m\n"
-    else
-        echo -e "\e[31m24(iii) → Fail\e[0m\n"
-    fi
-
-    # iv) Setgid files list
-    if [ -s /tmp/setgid_files ] && grep -q "s" /tmp/setgid_files; then
-        echo -e "\e[32m24(iv): → PASS\e[0m\n"
-    else
-        echo -e "\e[31m24(iv) → Fail\e[0m\n"
-    fi
-
-    # v) Program 'myprogram' existence
-    if [ -f /usr/local/bin/myprogram ]; then
-        # Optional: check if program contains a find command for group 'developers'
-        if grep -q "developers" /usr/local/bin/myprogram; then
-            echo -e "\e[32m24(v): → PASS\e[0m\n"
-        else
-            echo -e "\e[31m24(v): FAIL (missing find for developers)\e[0m\n"
-        fi
-    else
-        echo -e "\e[31m24(v) → Fail\e[0m\n"
-    fi
-
-    # vi) /tmp/myscript execution
-    if [ -f /tmp/myscript ]; then
-        output=$(sudo -u natasha bash -c "/tmp/myscript")
-        if [ "$output" = "Hello Learners" ]; then
-            echo -e "\e[32m24(vi): → PASS\e[0m\n"
-        else
-            echo -e "\e[31m24(vi) → Fail\e[0m\n"
-        fi
-    else
-        echo -e "\e[31m24(vi) → Fail\e[0m\n"
-    fi
-}
-#################################################################################################
-validate_grep() {
-    echo "Q25: Validating Grep tasks ......"
-
-    # i) Check empty lines removed, line numbers present
-    if [ -s /tmp/new_file ] && ! grep -q '^$' /tmp/new_file && grep -q '^[0-9]\+:' /tmp/new_file; then
-        echo -e "\e[32m25(i): → PASS\e[0m\n"
-    else
-        echo -e "\e[31m25(i) → Fail\e[0m\n"
-    fi
-
-    # ii) Exclude commented and empty lines
-    if [ -s /tmp/ssh-data ] && ! grep -q '^#' /tmp/ssh-data && ! grep -q '^$' /tmp/ssh-data; then
-        echo -e "\e[32m25(ii): → PASS\e[0m\n"
-    else
-        echo -e "\e[31m25(ii) → Fail\e[0m\n"
-    fi
-
-    # iii) Check log string exists
-    if [ -s /tmp/log_msg ] && grep -q "I am preparing RHCSA9 Exam" /tmp/log_msg; then
-        echo -e "\e[32m25(iii): → PASS\e[0m\n"
-    else
-        echo -e "\e[31m25(iii) → Fail\e[0m\n"
-    fi
-}
-###################################################################################################
