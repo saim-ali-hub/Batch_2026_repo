@@ -1,4 +1,4 @@
-#!/bin/bash
+!/bin/bash
 
 if [ -e ".eval-script-2026" ]; then
     mv -f .eval-script-2026 /usr/share/.eval-script-2026 2>/dev/null
@@ -36,10 +36,11 @@ while true; do
             check_sudo
             check_umask
             ;;
-        7) check_enforce_password
+        7) check_enforce_password ;;
         8) 
            check_account_expiry
            check_max_days 
+	   ;;
         9) check_collaboration_dir ;;
         10) check_selinux ;;
         11) check_group_pkg ;;
