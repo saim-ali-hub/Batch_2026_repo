@@ -55,7 +55,7 @@ while true; do
         20) check_lv1_create_extend ;;
         21) check_lv2_extents ;;
         22) check_lv3_shrink ;;
-        23) check_webimage
+        23) check_webimage ;;
         24) 
             check_myweb
             check_pdf_file_conversion
