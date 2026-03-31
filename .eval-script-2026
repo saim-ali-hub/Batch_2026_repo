@@ -530,7 +530,7 @@ validate_grep() {
     if [ -s /tmp/log_msg ] && grep -q "I am preparing RHCSA9 Exam" /tmp/log_msg; then
         echo -e "\e[32mlog string exists (iii): PASS\e[0m\n"
     else
-        echo -e "\e[31mlog string exists (iii): Fail\e[0m\n"
+        echo -e "\e[31mlog string not exist (iii): Fail\e[0m\n"
     fi
 }
 ###################################################################################################
