@@ -250,16 +250,24 @@ check_sudo(){
         echo -e "\e[31mSudo_Group: Fail\e[0m\n"
     fi
 }
-
 check_umask(){
    echo "Check UMASK ......."
    des_umask="0002"
-   current_umask=`su - bob -c 'umask'`
+   
+   # 1. Check if user bob exists to avoid "su" errors
+   if ! id "bob" &>/dev/null; then
+       echo -e "\e[31mUMASK: Fail (User 'bob' does not exist)\e[0m\n"
+       return 1
+   fi
 
-   if [ $des_umask == $current_umask ];then
-           echo -e "\e[32mUMASK: Pass\e[0m\n"
+   # 2. Capture umask and hide error messages
+   current_umask=$(su - bob -c 'umask' 2>/dev/null)
+
+   # 3. Use double quotes "$..." to handle empty values safely
+   if [ "$des_umask" == "$current_umask" ]; then
+       echo -e "\e[32mUMASK: Pass\e[0m\n"
    else
-           echo -e "\e[31mUMASK: Fail\e[0m\n"
+       echo -e "\e[31mUMASK: Fail (Found: $current_umask)\e[0m\n"
    fi
 }
 #####################################################################################
@@ -728,7 +736,7 @@ check_myweb(){
     if $ALL_PASS; then
 		echo -e "\e[32mCheck myweb — All validations successful: Pass\e[0m\n"
     else
-        echo -e echo -e "\e[32mCheck myweb — $FAIL_MSG\e[0m\n"
+        echo -e echo -e "\e[31mCheck myweb — $FAIL_MSG\e[0m\n"
     fi
 }
 check_pdf_file_conversion(){

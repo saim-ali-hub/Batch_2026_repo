@@ -26,12 +26,12 @@ changing_other_configurations() {
     rm -rf /etc/auto.master /etc/auto.misc 2>/dev/null
     mkdir -p /rhome 2>/dev/null
 
-    for u in 1 2 3; do
-    useradd -u 400${u} -M -b /rhome user${u} 2>/dev/null
-    done
+    useradd -u 4001 -M -b /rhome user1 2>/dev/null
+    useradd -u 4002 -M -b /rhome user2 2>/dev/null
+    useradd -u 4003 -M -b /rhome user3 2>/dev/null
 
     echo "RUNNING TASK 5"
-    for u in user1 max bob chris natasha; do
+    for u in max bob chris natasha; do
         userdel -r "$u" &>/dev/null
     done
 
@@ -48,6 +48,7 @@ changing_other_configurations() {
     sed -i 's/^Listen .*/Listen 83/' /etc/httpd/conf/httpd.conf
 
     semanage port -d -t http_port_t -p tcp 83 &>/dev/null || true
+    systemctl restart httpd &>/dev/null || true
     firewall-cmd --remove-port=83/tcp --permanent &>/dev/null || true
     firewall-cmd --reload &>/dev/null || true
 
@@ -102,17 +103,21 @@ sed -i '\|/app3|d' /etc/fstab >/dev/null 2>&1
 lvdisplay /dev/vg3/lv3 &>/dev/null && lvremove -y /dev/vg3/lv3 >/dev/null 2>&1
 vgdisplay vg3 &>/dev/null && vgremove -y vg3 >/dev/null 2>&1
 pvdisplay /dev/sdc2 &>/dev/null && pvremove -y /dev/sdc2 >/dev/null 2>&1
-
 }
 Configure_container() {
+
+echo "Undoing Container Tasks..."
+
 sudo -u linda bash -c '
 systemctl --user stop container-myweb.service 2>/dev/null
 systemctl --user disable container-myweb.service 2>/dev/null
 rm -f ~/.config/systemd/user/container-myweb.service
 systemctl --user daemon-reload
+
 podman rm -f myweb 2>/dev/null
 podman rmi webimage 2>/dev/null
-podman logout registry.redhat.io
-rm -f /opt/process/ /opt/action
+podman logout registry.redhat.io 2>/dev/null
+
+rm -rf /opt/process /opt/action 2>/dev/null
 '
 }
