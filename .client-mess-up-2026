@@ -70,10 +70,12 @@ changing_other_configurations() {
     rm -rf /tmp/web >/dev/null 2>&1
     crontab -u bob -r &>/dev/null || true
 
-    if ! id natasha &>/dev/null; then
-    sudo useradd natasha &>/dev/null
+    if ! id -u natasha &>/dev/null; then
+       sudo useradd natasha &>/dev/null
     fi
-    
+    if ! id -u linda  &>/dev/null; then
+       sudo useradd linda &>/dev/null
+    fi
     rm -rf /var/log/journal >/dev/null 2>&1   # disable persistent journal
     rm -rf /tmp/archive.tar >/dev/null 2>&1
     yum remove bzip2 -y &>/dev/null
@@ -125,7 +127,7 @@ echo "Undoing Container Tasks..."
 
 # 1. Check if user exists
 if ! id linda &>/dev/null; then
-    useradd linda 
+    echo "User linda not Exist ..."
     return 1
 fi
 
