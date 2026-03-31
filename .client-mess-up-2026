@@ -22,16 +22,27 @@ changing_rootpw_repos_chrony() {
 
 changing_other_configurations() {
     echo "RUNNING TASK 4"
-    yum remove -y nfs-utils autofs &>/dev/null
+    yum remove -y autofs &>/dev/null
     rm -rf /etc/auto.master /etc/auto.misc 2>/dev/null
     mkdir -p /rhome 2>/dev/null
+    
 
-    useradd -u 4001 -M -b /rhome user1 2>/dev/null
-    useradd -u 4002 -M -b /rhome user2 2>/dev/null
-    useradd -u 4003 -M -b /rhome user3 2>/dev/null
+   for user in user1 user2 user3; do
+    if id "$user" &>/dev/null; then
+        sudo userdel -r "$user" &>/dev/null
+    fi
+   done
+
+    sudo useradd -u 4001 -M -b /rhome user1 &>/dev/null
+    sudo useradd -u 4002 -M -b /rhome user2 &>/dev/null
+    sudo useradd -u 4003 -M -b /rhome user3 &>/dev/null
+
+    if ! rpm -q nfs-utils &>/dev/null; then
+    sudo yum install -y nfs-utils &>/dev/null
+    fi
 
     echo "RUNNING TASK 5"
-    for u in max bob chris natasha; do
+    for u in max bob chris; do
         userdel -r "$u" &>/dev/null
     done
 
@@ -58,6 +69,10 @@ changing_other_configurations() {
     echo "RUNNING TASK 8 ......................."
     rm -rf /tmp/web >/dev/null 2>&1
     crontab -u bob -r &>/dev/null || true
+
+    if ! id natasha &>/dev/null; then
+    sudo useradd natasha &>/dev/null
+    fi
     
     rm -rf /var/log/journal >/dev/null 2>&1   # disable persistent journal
     rm -rf /tmp/archive.tar >/dev/null 2>&1
