@@ -108,7 +108,16 @@ Configure_container() {
 
 echo "Undoing Container Tasks..."
 
-sudo -u linda bash -c '
+# Enable lingering so user systemd works without login
+sudo loginctl enable-linger linda
+
+# Get UID once
+LUID=$(id -u linda)
+
+sudo -u linda \
+XDG_RUNTIME_DIR=/run/user/$LUID \
+DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$LUID/bus \
+bash -c "
 systemctl --user stop container-myweb.service 2>/dev/null
 systemctl --user disable container-myweb.service 2>/dev/null
 rm -f ~/.config/systemd/user/container-myweb.service
@@ -119,5 +128,5 @@ podman rmi webimage 2>/dev/null
 podman logout registry.redhat.io 2>/dev/null
 
 rm -rf /opt/process /opt/action 2>/dev/null
-'
+"
 }
