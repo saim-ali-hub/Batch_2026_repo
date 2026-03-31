@@ -1,4 +1,4 @@
-!/bin/bash
+#!/bin/bash
 
 if [ -e ".eval-script-2026" ]; then
     mv -f .eval-script-2026 /usr/share/.eval-script-2026 2>/dev/null
