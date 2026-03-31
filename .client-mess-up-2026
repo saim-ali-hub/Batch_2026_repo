@@ -125,7 +125,7 @@ echo "Undoing Container Tasks..."
 
 # 1. Check if user exists
 if ! id linda &>/dev/null; then
-    echo "Error: user 'linda' does not exist. Exiting..."
+    useradd linda 
     return 1
 fi
 
