@@ -90,7 +90,7 @@ check_IP() {
     echo "Check Q2: Static IP Configuration..."
 
     while true; do
-        read -p "Enter network interface: " n_card
+        read -p "Enter network interface name (e.g., enp0s3, ens): " n_card
         check_interface "$n_card" && break
     done
 
