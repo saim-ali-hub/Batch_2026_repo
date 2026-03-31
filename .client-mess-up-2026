@@ -108,12 +108,19 @@ Configure_container() {
 
 echo "Undoing Container Tasks..."
 
-# Enable lingering so user systemd works without login
+# 1. Check if user exists
+if ! id linda &>/dev/null; then
+    echo "Error: user 'linda' does not exist. Exiting..."
+    return 1
+fi
+
+# 2. Enable lingering
 sudo loginctl enable-linger linda
 
-# Get UID once
+# 3. Get UID
 LUID=$(id -u linda)
 
+# 4. Execute cleanup as linda
 sudo -u linda \
 XDG_RUNTIME_DIR=/run/user/$LUID \
 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$LUID/bus \
@@ -125,8 +132,11 @@ systemctl --user daemon-reload
 
 podman rm -f myweb 2>/dev/null
 podman rmi webimage 2>/dev/null
+podman volume prune -f 2>/dev/null
 podman logout registry.redhat.io 2>/dev/null
 
 rm -rf /opt/process /opt/action 2>/dev/null
 "
+
+echo "Cleanup completed successfully."
 }
