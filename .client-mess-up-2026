@@ -9,8 +9,8 @@ echo -e "\e[37m***********************RUNNING NOW******************************\
 
 changing_other_configurations() {
     echo "RUNNING TASK 1"
-    yum remove -y autofs &>/dev/null
-    rm -rf /etc/auto.master /etc/auto.misc 2>/dev/null
+    yum remove -y autofs &>/dev/null || true
+    rm -rf /etc/auto.master /etc/auto.misc 2>/dev/null || true
     mkdir -p /rhome 2>/dev/null
     
 
