@@ -27,25 +27,25 @@ fi
 
 # Menu loop
 while true; do
-echo "1) changing_rootpw_repos_chrony"
-echo "2) changing_other_configurations"
-echo "3) Configure_LVM"
-echo "4) Configure_container"
+echo "1) changing_other_configurations"
+echo "2) Configure_LVM"
+echo "3) Configure_container"
+echo "4) changing_rootpw_repos_chrony"
 echo "all) Run all"
 echo "q) Quit"
 
     read -rp "Enter choice (1, 2, 3, 4, all, q): " code
 
     case "$code" in
-        1) changing_rootpw_repos_chrony ;;
-        2) changing_other_configurations ;;
-        3) Configure_LVM ;;
-        4) Configure_container ;;
+        1) changing_other_configurations ;;
+        2) Configure_LVM ;;
+        3) Configure_container ;;
+        4) changing_rootpw_repos_chrony ;;
        all)
-           changing_rootpw_repos_chrony
            changing_other_configurations
            Configure_LVM
            Configure_container
+           changing_rootpw_repos_chrony  
            ;;
        q|Q|exit)
             echo "Exiting... Goodbye!"
