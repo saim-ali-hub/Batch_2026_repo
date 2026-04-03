@@ -76,6 +76,7 @@ changing_other_configurations() {
     if ! id -u linda  &>/dev/null; then
        sudo useradd linda &>/dev/null
     fi
+    sed -i 's/^PASS_MAX_DAYS.*/PASS_MAX_DAYS   99999/' /etc/login.defs
     rm -rf /var/log/journal >/dev/null 2>&1   # disable persistent journal
     rm -rf /tmp/archive.tar >/dev/null 2>&1
     yum remove bzip2 -y &>/dev/null
