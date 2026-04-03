@@ -9,7 +9,8 @@ echo -e "\e[37m***********************RUNNING NOW******************************\
 
 changing_rootpw_repos_chrony() {
     echo "RUNNING TASK 1"
-    rm -f /etc/yum.repos.d/*.repo
+    repo_dir=/etc/yum.repos.d/
+    find "$repo_dir" -type f -name "*.repo" -not -name "redhat.repo" -exec rm -f {} \; &>/dev/null
 
     echo "RUNNING TASK 2"
     sed -i '/^server.*iburst/d' /etc/chrony.conf 2>/dev/null
