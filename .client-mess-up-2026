@@ -15,7 +15,6 @@ changing_other_configurations() {
     
    for user in user1 user2 user3; do
       id "$user" &>/dev/null && userdel -r "$user" &>/dev/null || true
-    fi
    done
 
     useradd -u 4001 -M -b /rhome user1 &>/dev/null || true
