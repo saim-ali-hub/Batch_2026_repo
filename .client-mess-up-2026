@@ -9,39 +9,34 @@ echo -e "\e[37m***********************RUNNING NOW******************************\
 
 changing_other_configurations() {
     echo "RUNNING TASK 1"
-    yum remove -y autofs &>/dev/null || true
     rm -rf /etc/auto.master /etc/auto.misc 2>/dev/null || true
+    yum remove -y autofs &>/dev/null || true
     mkdir -p /rhome 2>/dev/null
     
-
    for user in user1 user2 user3; do
     if id "$user" &>/dev/null; then
         sudo userdel -r "$user" &>/dev/null
     fi
    done
 
-    sudo useradd -u 4001 -M -b /rhome user1 &>/dev/null || true
-    sudo useradd -u 4002 -M -b /rhome user2 &>/dev/null || true
-    sudo useradd -u 4003 -M -b /rhome user3 &>/dev/null || true
-
-    if ! yum install -y nfs-utils &>/dev/null; then
-    echo "Failed to install nfs-utils"
-    fi
+    useradd -u 4001 -M -b /rhome user1 &>/dev/null || true
+    useradd -u 4002 -M -b /rhome user2 &>/dev/null || true
+    useradd -u 4003 -M -b /rhome user3 &>/dev/null || true
 
     echo "RUNNING TASK 2"
     for u in max bob chris; do
-        userdel -r "$u" &>/dev/null
+        userdel -r "$u" &>/dev/null || true
     done
 
     for g in developers admins; do
-        groupdel "$g" &>/dev/null
+        groupdel "$g" &>/dev/null || true
     done
 
     sed -i '/^%developers/d' /etc/sudoers || true
     visudo -c &>/dev/null || true
 
     echo "RUNNING TASK 3"
-    yum install -y httpd &>/dev/null
+    yum install -y httpd &>/dev/null || true
     systemctl enable httpd --now &>/dev/null || true
     sed -i 's/^Listen .*/Listen 83/' /etc/httpd/conf/httpd.conf
 
