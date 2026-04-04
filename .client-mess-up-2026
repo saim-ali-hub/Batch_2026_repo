@@ -146,7 +146,7 @@ changing_rootpw_repos_chrony() {
     echo "RUNNING TASK 7"
     sed -i '/^server.*iburst/d' /etc/chrony.conf 2>/dev/null
     systemctl disable chronyd --now &>/dev/null
-    dnf remove -y chrony &>/dev/null
+    dnf remove -y chrony &>/dev/null || true
 
     echo "RUNNING TASK 8"
     echo 'root:complex_abc_1245*abc!!!!!' | chpasswd
