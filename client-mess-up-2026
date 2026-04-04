@@ -25,7 +25,7 @@ while true; do
     echo "all) Run all"
     echo "q) Quit"
 
-    read -rp "Enter choice: " code
+    read -rp "Enter choice:(1, 2, 3, 4, all, q):" code
 
     case "$code" in
         1) changing_other_configurations ;;
