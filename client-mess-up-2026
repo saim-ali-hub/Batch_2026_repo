@@ -9,55 +9,46 @@ fi
 SCRIPT="/usr/share/.client-mess-up-2026"
 
 # Move script if present locally
-if [ -f ".client-mess-up-2026" ]; then
-    mv -f .client-mess-up-2026 $SCRIPT  2>/dev/null
-fi
+[ -f ".client-mess-up-2026" ] && mv -f .client-mess-up-2026 $SCRIPT
 
 # Verify script exists
-if [ ! -f "$SCRIPT" ]; then
-    echo "Error: $SCRIPT not found"
-    exit 1
-fi
+[ ! -f "$SCRIPT" ] && { echo "Error: $SCRIPT not found"; exit 1; }
 
-# Source the script SAFELY
-if ! source "$SCRIPT" >/dev/null 2>&1; then
-    echo "Failed to load required functions from Script"
-    exit 1
-fi
+# Load script
+source "$SCRIPT" || { echo "Failed to load script"; exit 1; }
 
-# Menu loop
 while true; do
-echo "1) changing_other_configurations"
-echo "2) Configure_LVM"
-echo "3) Configure_container"
-echo "4) changing_rootpw_repos_chrony"
-echo "all) Run all"
-echo "q) Quit"
+    echo "1) changing_other_configurations"
+    echo "2) Configure_LVM"
+    echo "3) Configure_container"
+    echo "4) changing_rootpw_repos_chrony"
+    echo "all) Run all"
+    echo "q) Quit"
 
-    read -rp "Enter choice (1, 2, 3, 4, all, q): " code
+    read -rp "Enter choice: " code
 
     case "$code" in
         1) changing_other_configurations ;;
         2) Configure_LVM ;;
         3) Configure_container ;;
         4) changing_rootpw_repos_chrony ;;
-       all)
-           changing_other_configurations
-           Configure_LVM
-           Configure_container
-           changing_rootpw_repos_chrony  
-           ;;
-       q|Q|exit)
-            echo "Exiting... Goodbye!"
+        all)
+            changing_other_configurations
+            Configure_LVM
+            Configure_container || true 
+            changing_rootpw_repos_chrony
+            ;;
+        q|Q|exit)
+            echo "Exiting..."
             exit 0
             ;;
         *)
-            echo "Invalid option. Try again."
+            echo "Invalid option"
             continue
             ;;
     esac
 
-     read -rp "Reboot system now? (y/n): " ans
-     [[ "$ans" == "y" ]] && shutdown -r +1
+    read -rp "Reboot system now? (y/n): " ans
+    [[ "$ans" == "y" ]] && shutdown -r +1
 
 done
