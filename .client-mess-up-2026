@@ -11,11 +11,10 @@ changing_other_configurations() {
     echo "RUNNING TASK 1"
     rm -rf /etc/auto.master /etc/auto.misc 2>/dev/null || true
     yum remove -y autofs &>/dev/null || true
-    mkdir -p /rhome 2>/dev/null
+    mkdir -p /rhome 2>/dev/null || true
     
    for user in user1 user2 user3; do
-    if id "$user" &>/dev/null; then
-        sudo userdel -r "$user" &>/dev/null
+      id "$user" &>/dev/null && userdel -r "$user" &>/dev/null || true
     fi
    done
 
@@ -38,7 +37,7 @@ changing_other_configurations() {
     echo "RUNNING TASK 3"
     yum install -y httpd &>/dev/null || true
     systemctl enable httpd --now &>/dev/null || true
-    sed -i 's/^Listen .*/Listen 83/' /etc/httpd/conf/httpd.conf
+    sed -i 's/^Listen .*/Listen 83/' /etc/httpd/conf/httpd.conf || true
 
     semanage port -d -t http_port_t -p tcp 83 &>/dev/null || true
     systemctl restart httpd &>/dev/null || true
@@ -49,111 +48,90 @@ changing_other_configurations() {
     echo "Practicing RHCSA9" > /var/www/html/index.html
    
     echo "RUNNING TASK 5 ......................."
-    rm -rf /tmp/web >/dev/null 2>&1
+    rm -rf /tmp/web >/dev/null 2>&1 || true
     crontab -u bob -r &>/dev/null || true
 
-    if ! id -u natasha &>/dev/null; then
-       sudo useradd natasha &>/dev/null
-    fi
-    if ! id -u linda  &>/dev/null; then
-       sudo useradd linda &>/dev/null
-    fi
-    sed -i 's/^PASS_MAX_DAYS.*/PASS_MAX_DAYS   99999/' /etc/login.defs
-    rm -rf /var/log/journal >/dev/null 2>&1   # disable persistent journal
-    rm -rf /tmp/archive.tar >/dev/null 2>&1
-    yum remove bzip2 -y &>/dev/null
-    rm -rf /var/tmp/fstab >/dev/null 2>&1
-    rm -rf /tmp/data2 >/dev/null 2>&1
-    rm -rf /tmp/file-logs >/dev/null 2>&1
-    rm -rf /backup/logfiles >/dev/null 2>&1
-    rm -rf /var/tmp/linda >/dev/null 2>&1
-    rm -rf /tmp/setgid_files >/dev/null 2>&1
-    rm -rf /tmp/new_dir >/dev/null 2>&1
-    rm -rf /tmp/myscript >/dev/null 2>&1
-    rm -rf /tmp/new_file >/dev/null 2>&1
-    rm -rf /tmp/ssh-data >/dev/null 2>&1
-    rm -rf /tmp/log_msg >/dev/null 2>&1
+    id natasha &>/dev/null || useradd natasha &>/dev/null || true
+    id linda &>/dev/null || useradd linda &>/dev/null || true
+
+    sed -i 's/^PASS_MAX_DAYS.*/PASS_MAX_DAYS   99999/' /etc/login.defs || true
+    rm -rf /var/log/journal /tmp/archive.tar /var/tmp/fstab \
+           /tmp/data2 /tmp/file-logs /backup/logfiles \
+           /var/tmp/linda /tmp/setgid_files /tmp/new_dir \
+           /tmp/myscript /tmp/new_file /tmp/ssh-data /tmp/log_msg 2>/dev/null || true
+    yum remove bzip2 -y &>/dev/null || true
     }
 
 Configure_LVM() {
 echo "RUNNING TASK 6 ......................."
 
-# Task 19 Cleanup (vg1/lv1)
-mountpoint -q /app1 && umount /app1 >/dev/null 2>&1
-sed -i '\|/app1|d' /etc/fstab >/dev/null 2>&1
-lvdisplay /dev/vg1/lv1 &>/dev/null && lvremove -y /dev/vg1/lv1 >/dev/null 2>&1
-vgdisplay vg1 &>/dev/null && vgremove -y vg1 >/dev/null 2>&1
-pvdisplay /dev/sdb1 &>/dev/null && pvremove -y /dev/sdb1 >/dev/null 2>&1
+mountpoint -q /app1 && umount /app1 || true
+    sed -i '\|/app1|d' /etc/fstab || true
+    lvremove -y /dev/vg1/lv1 &>/dev/null || true
+    vgremove -y vg1 &>/dev/null || true
+    pvremove -y /dev/sdb1 &>/dev/null || true
 
-# Task 20 Cleanup (vg2/lv2)
-mountpoint -q /app2 && umount /app2 >/dev/null 2>&1
-sed -i '\|/app2|d' /etc/fstab >/dev/null 2>&1
-lvdisplay /dev/vg2/lv2 &>/dev/null && lvremove -y /dev/vg2/lv2 >/dev/null 2>&1
-vgdisplay vg2 &>/dev/null && vgremove -y vg2 >/dev/null 2>&1
-pvdisplay /dev/sdb2 &>/dev/null && pvremove -y /dev/sdb2 >/dev/null 2>&1
+    mountpoint -q /app2 && umount /app2 || true
+    sed -i '\|/app2|d' /etc/fstab || true
+    lvremove -y /dev/vg2/lv2 &>/dev/null || true
+    vgremove -y vg2 &>/dev/null || true
+    pvremove -y /dev/sdb2 &>/dev/null || true
 
-# Task 21 Cleanup (Swap on /dev/sdc1)
-swapon --summary | grep -q "/dev/sdc1" && swapoff /dev/sdc1 >/dev/null 2>&1
-sed -i '\|/dev/sdc1|d' /etc/fstab >/dev/null 2>&1
-wipefs -a /dev/sdc1 >/dev/null 2>&1
+    swapon --summary | grep -q "/dev/sdc1" && swapoff /dev/sdc1 || true
+    sed -i '\|/dev/sdc1|d' /etc/fstab || true
+    wipefs -a /dev/sdc1 &>/dev/null || true
 
-# Task 22 Cleanup (vg3/lv3)
-mountpoint -q /app3 && umount /app3 >/dev/null 2>&1
-sed -i '\|/app3|d' /etc/fstab >/dev/null 2>&1
-lvdisplay /dev/vg3/lv3 &>/dev/null && lvremove -y /dev/vg3/lv3 >/dev/null 2>&1
-vgdisplay vg3 &>/dev/null && vgremove -y vg3 >/dev/null 2>&1
-pvdisplay /dev/sdc2 &>/dev/null && pvremove -y /dev/sdc2 >/dev/null 2>&1
+    mountpoint -q /app3 && umount /app3 || true
+    sed -i '\|/app3|d' /etc/fstab || true
+    lvremove -y /dev/vg3/lv3 &>/dev/null || true
+    vgremove -y vg3 &>/dev/null || true
+    pvremove -y /dev/sdc2 &>/dev/null || true
 }
+
 Configure_container() {
 
-echo "Undoing Container Tasks..."
+echo "RUNNING TASK 7 (Container Cleanup)"
 
-# 1. Check if user exists
-if ! id linda &>/dev/null; then
-    echo "User linda not Exist ..."
-    return 0
-fi
+    if ! id linda &>/dev/null; then
+        echo "User linda not exist... skipping container cleanup"
+        return 0   # ✅ FIXED (was breaking script before)
+    fi
 
-# 2. Enable lingering
-sudo loginctl enable-linger linda
+    loginctl enable-linger linda || true
+    LUID=$(id -u linda)
 
-# 3. Get UID
-LUID=$(id -u linda)
+    sudo -u linda \
+    XDG_RUNTIME_DIR=/run/user/$LUID \
+    DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$LUID/bus \
+    bash -c "
+    systemctl --user stop container-myweb.service 2>/dev/null
+    systemctl --user disable container-myweb.service 2>/dev/null
+    rm -f ~/.config/systemd/user/container-myweb.service
+    systemctl --user daemon-reload
 
-# 4. Execute cleanup as linda
-sudo -u linda \
-XDG_RUNTIME_DIR=/run/user/$LUID \
-DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$LUID/bus \
-bash -c "
-systemctl --user stop container-myweb.service 2>/dev/null
-systemctl --user disable container-myweb.service 2>/dev/null
-rm -f ~/.config/systemd/user/container-myweb.service
-systemctl --user daemon-reload
+    podman rm -f myweb 2>/dev/null
+    podman rmi webimage 2>/dev/null
+    podman volume prune -f 2>/dev/null
+    podman logout registry.redhat.io 2>/dev/null
 
-podman rm -f myweb 2>/dev/null
-podman rmi webimage 2>/dev/null
-podman volume prune -f 2>/dev/null
-podman logout registry.redhat.io 2>/dev/null
+    rm -rf /opt/process /opt/action 2>/dev/null
+    " || true
 
-rm -rf /opt/process /opt/action 2>/dev/null
-"
-
-echo "Cleanup completed successfully."
+    echo "Cleanup completed successfully."
 }
 
 changing_rootpw_repos_chrony() {
    
-    echo "RUNNING TASK 7"
-    sed -i '/^server.*iburst/d' /etc/chrony.conf 2>/dev/null
-    systemctl disable chronyd --now &>/dev/null
+    echo "RUNNING TASK 8"
+    sed -i '/^server.*iburst/d' /etc/chrony.conf || true
+    systemctl disable chronyd --now &>/dev/null || true
     dnf remove -y chrony &>/dev/null || true
 
-    echo "RUNNING TASK 8"
-    echo 'root:complex_abc_1245*abc!!!!!' | chpasswd
-
     echo "RUNNING TASK 9"
-    repo_dir=/etc/yum.repos.d/
-    find "$repo_dir" -type f -name "*.repo" -not -name "redhat.repo" -exec rm -f {} \; &>/dev/null
+    echo 'root:complex_abc_1245*abc!!!!!' | chpasswd || true
 
+    echo "RUNNING TASK 10"
+    repo_dir=/etc/yum.repos.d/
+    find "$repo_dir" -type f -name "*.repo" -not -name "redhat.repo" -exec rm -f {} \; &>/dev/null || true
 }
 
