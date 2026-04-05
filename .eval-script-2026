@@ -554,15 +554,21 @@ validate_shell_script() {
 check_swap() {
     echo "Checking Q19: Swap Configuration ......."
 
-    swapon --show | grep -q "/dev/sdc1"
-    swp_st=$?
+    # Ask user input
+    read -p "Enter swap device (e.g., /dev/sdb1): " swap_dev
 
-    if [ $swp_st -ne 0 ]; then
-        echo -e "\e[31mSwap device /dev/sdc1 not active: Fail\e[0m\n"
+    # Validate input
+    [ -z "$swap_dev" ] && { echo "No device entered. Exiting."; return; }
+
+    # Check if swap is active
+    swapon --show | grep -q "$swap_dev"
+    if [ $? -ne 0 ]; then
+        echo -e "\e[31mSwap device $swap_dev not active: Fail\e[0m\n"
         return
     fi
 
-    swap_size=$(lsblk -b /dev/sdc1 | awk 'NR==2 {print int($4/1024/1024)}')
+    # Get size dynamically
+    swap_size=$(lsblk -b "$swap_dev" | awk 'NR==2 {print int($4/1024/1024)}')
 
     if [ "$swap_size" -ge 500 ] && [ "$swap_size" -le 520 ]; then
         echo -e "\e[32mSwap size ${swap_size}MB: Pass\e[0m"
@@ -570,7 +576,8 @@ check_swap() {
         echo -e "\e[31mSwap size ${swap_size}MB: Fail\e[0m"
     fi
 
-    grep -q "/dev/sdc1" /etc/fstab
+    # Check persistence
+    grep -q "$swap_dev" /etc/fstab
     if [ $? -eq 0 ]; then
         echo -e "\e[32mPersistent swap entry: Pass\e[0m\n"
     else
