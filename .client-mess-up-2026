@@ -66,25 +66,54 @@ echo "RUNNING TASK 6 ......................."
 
 mountpoint -q /app1 && umount /app1 || true
     sed -i '\|/app1|d' /etc/fstab || true
+    pv_list_vg1=$(pvs --noheadings -o pv_name,vg_name | awk '$2=="vg1"{print $1}')
     lvremove -y /dev/vg1/lv1 &>/dev/null || true
     vgremove -y vg1 &>/dev/null || true
-    pvremove -y /dev/sdb1 &>/dev/null || true
+    for pv in $pv_list_vg1; do
+        pvremove -y "$pv" &>/dev/null || true
+    done
 
-    mountpoint -q /app2 && umount /app2 || true
+mountpoint -q /app2 && umount /app2 || true
     sed -i '\|/app2|d' /etc/fstab || true
+    pv_list_vg2=$(pvs --noheadings -o pv_name,vg_name | awk '$2=="vg2"{print $1}')
     lvremove -y /dev/vg2/lv2 &>/dev/null || true
     vgremove -y vg2 &>/dev/null || true
-    pvremove -y /dev/sdb2 &>/dev/null || true
+    for pv in $pv_list_vg2; do
+        pvremove -y "$pv" &>/dev/null || true
+    done
 
-    swapon --summary | grep -q "/dev/sdc1" && swapoff /dev/sdc1 || true
-    sed -i '\|/dev/sdc1|d' /etc/fstab || true
-    wipefs -a /dev/sdc1 &>/dev/null || true
+    # Detect root source device safely
+    root_src=$(findmnt -n -o SOURCE /)
+    # Resolve actual disk (handles LVM, mapper, etc.)
+    root_disk=$(lsblk -no PKNAME "$root_src" 2>/dev/null)
+    if [ -z "$root_disk" ]; then
+    echo "Could not detect root disk. Skipping swap cleanup."
+    return
+    fi
+    # Get active swap devices
+    swap_devices=$(swapon --noheadings --raw | awk '{print $1}')
+    for swp in "$swap_devices"; do
+        base_disk=$(lsblk -no PKNAME "$swp" 2>/dev/null)
 
-    mountpoint -q /app3 && umount /app3 || true
+    # Skip if cannot determine disk (extra safety)
+    [ -z "$base_disk" ] && continue
+
+    if [ "$base_disk" != "$root_disk" ]; then
+        swapoff "$swp" 2>/dev/null || true
+        sed -i "\|$swp|d" /etc/fstab || true
+        [ -b "$swp" ] && wipefs -a "$swp" &>/dev/null || true
+    fi
+done
+
+mountpoint -q /app3 && umount /app3 || true
     sed -i '\|/app3|d' /etc/fstab || true
+    pv_list_vg3=$(pvs --noheadings -o pv_name,vg_name | awk '$2=="vg3"{print $1}')
     lvremove -y /dev/vg3/lv3 &>/dev/null || true
     vgremove -y vg3 &>/dev/null || true
-    pvremove -y /dev/sdc2 &>/dev/null || true
+
+    for pv in $pv_list_vg3; do
+        pvremove -y "$pv" &>/dev/null
+    done
 }
 
 Configure_container() {
@@ -93,7 +122,7 @@ echo "RUNNING TASK 7 (Container Cleanup)"
 
     if ! id linda &>/dev/null; then
         echo "User linda not exist... skipping container cleanup"
-        return 0   # ✅ FIXED (was breaking script before)
+        return 0   
     fi
 
     loginctl enable-linger linda || true
