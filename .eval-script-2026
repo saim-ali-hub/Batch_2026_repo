@@ -555,7 +555,7 @@ check_swap() {
     echo "Checking Q19: Swap Configuration ......."
 
     # Ask user input
-    read -p "Enter swap device (e.g., /dev/sdb1): " swap_dev
+    read -p "Enter swap device or partition (e.g., /dev/sdb1): " swap_dev
 
     # Validate input
     [ -z "$swap_dev" ] && { echo "No device entered. Exiting."; return; }
