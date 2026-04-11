@@ -3,6 +3,7 @@
 if [ -e ".eval-script-2026" ]; then
     mv -f .eval-script-2026 /usr/share/.eval-script-2026 2>/dev/null
 fi
+
 # Ensure the eval script exists and can be sourced
 if [ ! -f /usr/share/.eval-script-2026 ]; then
     echo "Error: eval-script-2026 file not found!"
@@ -17,18 +18,18 @@ fi
 # Call startup banner function once
 eval_banner
 
-while true; do
-    read -p "Please select question (all or 1,2,3,4,5,..... or q to quit): " question
-    question=$(echo "$question" | tr '[:upper:]' '[:lower:]')
-    echo ""
-
-    case "$question" in
+# =========================
+# Function: Question Runner
+# =========================
+run_question() {
+    case "$1" in
         1) check_pw ;;
         2) check_IP ;;
         3) check_repos ;;
-        4) check_chrony ;;    
+        4) check_chrony ;;
         5) validate_autofs ;;
-        6)  
+
+        6)
             check_group
             check_users
             check_grp_membership
@@ -36,67 +37,89 @@ while true; do
             check_sudo
             check_umask
             ;;
+
         7) check_enforce_password ;;
-        8) 
-           check_account_expiry
-           check_max_days 
-	   ;;
+
+        8)
+            check_account_expiry
+            check_max_days
+            ;;
+
         9) check_collaboration_dir ;;
         10) check_selinux ;;
         11) check_group_pkg ;;
         12) check_bzip2_compression ;;
-        13) check_journal ;; 
+        13) check_journal ;;
         14) check_tuned_profile ;;
         15) check_cron ;;
-        16) validate_find ;; 
+        16) validate_find ;;
         17) validate_grep ;;
-        18) validate_shell_script ;; 
-        19) check_swap ;; 
+        18) validate_shell_script ;;
+        19) check_swap ;;
         20) check_lv1_create_extend ;;
         21) check_lv2_extents ;;
         22) check_lv3_shrink ;;
         23) check_webimage ;;
-        24) 
+
+        24)
             check_myweb
             check_pdf_file_conversion
             ;;
-        all)
-            check_pw
-            check_IP
-            check_repos
-            check_chrony
-            validate_autofs
-            check_group
-            check_users
-            check_grp_membership
-            check_usr_shell
-            check_sudo
-            check_umask
-            check_enforce_password
-            check_account_expiry
-            check_max_days
-            check_collaboration_dir
-            check_selinux
-            check_group_pkg
-            check_bzip2_compression
-            check_journal
-            check_tuned_profile
-            check_cron
-            validate_find
-            validate_grep
-            validate_shell_script
-            check_swap
-            check_lv1_create_extend
-            check_lv2_extents
-            check_lv3_shrink
-            check_webimage
-            check_myweb
-            check_pdf_file_conversion
+
+        *)
+            echo "Invalid question: $1"
             ;;
-        q|quit|exit)
-            echo "Exiting..."
-            break
-            ;;
-        *) echo "You did not select a valid question number." ;;
     esac
+}
+
+# =========================
+# Main Loop
+# =========================
+while true; do
+    read -p "Please select question (all, 1-15, 1,3,5 or q to quit): " question
+    question=$(echo "$question" | tr '[:upper:]' '[:lower:]')
+    echo ""
+
+    # Exit condition
+    if [[ "$question" == "q" || "$question" == "quit" || "$question" == "exit" ]]; then
+        echo "Exiting..."
+        break
+    fi
+
+    # ALL questions
+    if [[ "$question" == "all" ]]; then
+        for i in {1..24}; do
+            run_question "$i"
+        done
+        continue
+    fi
+
+    # RANGE support (e.g. 1-15)
+    if [[ "$question" =~ ^[0-9]+-[0-9]+$ ]]; then
+        start=${question%-*}
+        end=${question#*-}
+
+        if (( start > end )); then
+            echo "Invalid range: start is greater than end"
+            continue
+        fi
+
+        for ((i=start; i<=end; i++)); do
+            run_question "$i"
+        done
+        continue
+    fi
+
+    # LIST support (e.g. 1,3,5)
+    if [[ "$question" =~ ^[0-9,]+$ ]]; then
+        IFS=',' read -ra arr <<< "$question"
+        for i in "${arr[@]}"; do
+            run_question "$i"
+        done
+        continue
+    fi
+
+    # SINGLE question
+    run_question "$question"
+
 done
