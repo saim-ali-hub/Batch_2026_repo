@@ -52,6 +52,9 @@ changing_other_configurations() {
 
     id natasha &>/dev/null || useradd natasha &>/dev/null || true
     id linda &>/dev/null || useradd linda &>/dev/null || true
+    groupadd developers || true
+    useradd -G developers tom || true
+    useradd -G developers robert || true
 
     sed -i 's/^PASS_MAX_DAYS.*/PASS_MAX_DAYS   99999/' /etc/login.defs || true
     rm -rf /var/log/journal /tmp/archive.tar /var/tmp/fstab \
