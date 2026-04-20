@@ -55,8 +55,8 @@ changing_other_configurations() {
 
     sed -i 's/^PASS_MAX_DAYS.*/PASS_MAX_DAYS   99999/' /etc/login.defs || true
     rm -rf /var/log/journal /tmp/archive.tar /var/tmp/fstab \
-           /tmp/data2 /tmp/file-logs /backup/logfiles \
-           /var/tmp/linda /tmp/setgid_files /tmp/new_dir \
+           /tmp/data2 /tmp/file-logs /backup/ \
+           /var/tmp/linda/ /tmp/setgid_files/ /tmp/new_dir/ \
            /tmp/myscript /tmp/new_file /tmp/ssh-data /tmp/log_msg 2>/dev/null || true
     yum remove bzip2 -y &>/dev/null || true
     }
