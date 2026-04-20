@@ -535,7 +535,6 @@ validate_grep() {
 ###################################################################################################
 validate_shell_script() {
 	echo "Q18: Validating shell script ......"
-    SCRIPT="/tmp/myscript"
 
     # Run as natasha
     output_natasha=$(su - natasha -c "bash /tmp/myscript" 2>/dev/null)
