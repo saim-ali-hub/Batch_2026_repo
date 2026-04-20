@@ -538,10 +538,10 @@ validate_shell_script() {
     SCRIPT="/tmp/myscript"
 
     # Run as natasha
-    output_natasha=$(sudo -u natasha bash "$SCRIPT" 2>/dev/null)
+    output_natasha=$(su - natasha -c "bash /tmp/myscript" 2>/dev/null)
 
     # Run as another user
-    output_other=$(sudo -u nobody bash "$SCRIPT" 2>/dev/null)
+    output_other=$(su - nobody -c "bash /tmp/myscript" 2>/dev/null)
 
     # Check conditions
     if [ "$output_natasha" = "Hello Learners" ] && [ -z "$output_other" ]; then
