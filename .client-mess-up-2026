@@ -62,8 +62,7 @@ changing_other_configurations() {
            /var/tmp/linda/ /tmp/setgid_files/ /tmp/new_dir/ \
            /tmp/myscript /tmp/new_file /tmp/ssh-data /tmp/log_msg 2>/dev/null || true
     mkdir /tmp/data2 /backup/logfiles/ \
-           /var/tmp/linda/ /tmp/new_dir/ \
-           /tmp/ssh-data 2>/dev/null || true
+           /var/tmp/linda/ /tmp/new_dir/ 2>/dev/null || true
     yum remove bzip2 -y &>/dev/null || true
     }
 
